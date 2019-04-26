@@ -1,0 +1,56 @@
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+
+//will load the new type currency into mongoose so we can access
+//it as seen in the next line
+require("mongoose-currency").loadType(mongoose);
+const Currency = mongoose.Types.Currency;
+
+const promoSchema = new Schema(
+{
+  name:
+  {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  description:
+  {
+    type: String,
+    required: true
+  },
+
+  image:
+  {
+    type: String,
+    required: true
+  },
+
+  label:
+  {
+    type: String,
+    default: ""
+  },
+
+  price:
+  {
+    type: Currency,
+    required: true,
+    min: 0
+  },
+
+  featured:
+  {
+    type: Boolean,
+    default: false
+  }
+},
+{
+  //Schema options
+  timestamps: true
+});
+
+var Promotions = mongoose.model("Promotion", promoSchema);
+
+module.exports = Promotions;

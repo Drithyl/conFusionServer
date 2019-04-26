@@ -1,77 +1,109 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+
+const Promotions = require("../models/promotions.js");
 
 const promoRouter = express.Router();
 
 promoRouter.use(bodyParser.json());
 
-//this does not use the `/promos` endpoint anymore because that will be
-//mounted on the express router in the main index.js file
-
-//.route() means we are declaring the endpoint in one single location, so
-//we can handle all the HTTP requests here. Notice we don't use app.all()
-//anymore but instead mount .all into the promoRouter route. We will also
-//chain all the rest of the requests.
 promoRouter.route(`/`)
-.all((req, res, next) =>
-{
-  res.statusCode = 200;
-  res.setHeader(`Content-Type`, `text/plain`);
-
-  //next will pass on the req and res to the next HTTP requests involving
-  //the resource /promos, like the ones defined below
-  next();
-})
 .get((req, res, next) =>
 {
-  //req and res contain the modifications made earlier in the app.all(),
-  //due to the next() call in the app.all()
-  res.end(`Will send all the promos to you!`);
+  Promotions.find({})
+  .then((promotions) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+
+    //will take a JSON string and put it in the body of the response
+    res.json(promotions);
+
+    //pass the errors that occurr to the general error handler using next()
+    //Recall that next() will trickle down values below
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .post((req, res, next) =>
 {
-  res.end(`Will add the promo: ${req.body.name} with details: ${req.body.description}`);
+  //pass the data we receive in the request body as the data to create a new promotion
+  Promotions.create(req.body)
+  .then((promotion) =>
+  {
+    console.log(`Promotion Created `, promotion);
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(promotion);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .put((req, res, next) =>
 {
-  //operation not supported, put only makes sense to specific promoes, not on the
-  // /promos endpoint
+  //operation not supported, put only makes sense to specific promos, not on the
+  // /promotions endpoint
   res.statusCode = 403;
-  res.end(`PUT operation not supported on /promos`);
+  res.end(`PUT operation not supported on /promotions`);
 })
 .delete((req, res, next) =>
 {
-  res.end(`Deleting all the promos!`);
+  //Dangerous operation, as it removes all promos from the database
+  Promotions.remove({})
+  .then((resp) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(resp);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
-promoRouter.route(`/:promoId`)
-.all((req, res, next) =>
-{
-  res.statusCode = 200;
-  res.setHeader(`Content-Type`, `text/plain`);
-
-  //next will pass on the req and res to the next HTTP requests involving
-  //the resource /promos, like the ones defined below
-  next();
-})
+promoRouter.route(`/:promotionId`)
 .get((req, res, next) =>
 {
-  res.end(`Will send details of the promo: ${req.params.promoId} to you!`);
+  //extract the promotionId through the params property of the request
+  Promotions.findById(req.params.promotionId)
+  .then((promotion) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(promotion);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .post((req, res, next) =>
 {
   //operation not supported
   res.statusCode = 403;
-  res.end(`POST operation not supported on /promos/${req.params.promoId}`);
+  res.end(`POST operation not supported on /promotions/${req.params.promotionId}`);
 })
 .put((req, res, next) =>
 {
-  res.write(`Updating the promo: ${req.params.promoId}\n`);
-  res.end(`Will update the promo : ${req.body.name} with details ${req.body.description}`);
+  Promotions.findByIdAndUpdate(req.params.promotionId,
+  {
+    $set: req.body
+  },
+  {
+    new: true
+  })
+  .then((promotion) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(promotion);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .delete((req, res, next) =>
 {
-  res.end(`Deleting promo: ${req.params.promoId}`);
+  Promotions.findByIdAndRemove(req.params.promotionId)
+  .then((resp) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(resp);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
 module.exports = promoRouter;

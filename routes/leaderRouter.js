@@ -1,62 +1,75 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+
+const Leaders = require("../models/leaders.js");
 
 const leaderRouter = express.Router();
 
 leaderRouter.use(bodyParser.json());
 
-//this does not use the `/leaders` endpoint anymore because that will be
-//mounted on the express router in the main index.js file
-
-//.route() means we are declaring the endpoint in one single location, so
-//we can handle all the HTTP requests here. Notice we don't use app.all()
-//anymore but instead mount .all into the leaderRouter route. We will also
-//chain all the rest of the requests.
 leaderRouter.route(`/`)
-.all((req, res, next) =>
-{
-  res.statusCode = 200;
-  res.setHeader(`Content-Type`, `text/plain`);
-
-  //next will pass on the req and res to the next HTTP requests involving
-  //the resource /leaders, like the ones defined below
-  next();
-})
 .get((req, res, next) =>
 {
-  //req and res contain the modifications made earlier in the app.all(),
-  //due to the next() call in the app.all()
-  res.end(`Will send all the leaders to you!`);
+  Leaders.find({})
+  .then((leaders) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+
+    //will take a JSON string and put it in the body of the response
+    res.json(leaders);
+
+    //pass the errors that occurr to the general error handler using next()
+    //Recall that next() will trickle down values below
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .post((req, res, next) =>
 {
-  res.end(`Will add the leader: ${req.body.name} with details: ${req.body.description}`);
+  //pass the data we receive in the request body as the data to create a new leader
+  Leaders.create(req.body)
+  .then((leader) =>
+  {
+    console.log(`Leader Created `, leader);
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(leader);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .put((req, res, next) =>
 {
-  //operation not supported, put only makes sense to specific leaderes, not on the
-  // /leaders endpoint
+  //operation not supported, put only makes sense to specific promos, not on the
+  // /Leaderdpoint
   res.statusCode = 403;
   res.end(`PUT operation not supported on /leaders`);
 })
 .delete((req, res, next) =>
 {
-  res.end(`Deleting all the leaders!`);
+  //Dangerous operation, as it removes all promos from the database
+  Leaders.remove({})
+  .then((resp) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(resp);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
 leaderRouter.route(`/:leaderId`)
-.all((req, res, next) =>
-{
-  res.statusCode = 200;
-  res.setHeader(`Content-Type`, `text/plain`);
-
-  //next will pass on the req and res to the next HTTP requests involving
-  //the resource /leaders, like the ones defined below
-  next();
-})
 .get((req, res, next) =>
 {
-  res.end(`Will send details of the leader: ${req.params.leaderId} to you!`);
+  //extract the leaderId through the params property of the request
+  Leaders.findById(req.params.leaderId)
+  .then((leader) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(leader);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .post((req, res, next) =>
 {
@@ -66,12 +79,31 @@ leaderRouter.route(`/:leaderId`)
 })
 .put((req, res, next) =>
 {
-  res.write(`Updating the leader: ${req.params.leaderId}\n`);
-  res.end(`Will update the leader : ${req.body.name} with details ${req.body.description}`);
+  Leaders.findByIdAndUpdate(req.params.leaderId,
+  {
+    $set: req.body
+  },
+  {
+    new: true
+  })
+  .then((leader) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(leader);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 })
 .delete((req, res, next) =>
 {
-  res.end(`Deleting leader: ${req.params.leaderId}`);
+  Leaders.findByIdAndRemove(req.params.leaderId)
+  .then((resp) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(resp);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
 module.exports = leaderRouter;
