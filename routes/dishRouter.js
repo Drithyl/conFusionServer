@@ -113,4 +113,229 @@ dishRouter.route(`/:dishId`)
   .catch((err) => next(err));
 });
 
+
+dishRouter.route(`/:dishId/comments`)
+.get((req, res, next) =>
+{
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    if (dish != null)
+    {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json(dish.comments);
+    }
+
+    else
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404; //not found
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+})
+.post((req, res, next) =>
+{
+  //pass the data we receive in the request body as the data to create a new dish
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    if (dish != null)
+    {
+      //push the comments that need to be posted
+      dish.comments.push(req.body);
+
+      //if save is successful, return the updated dish
+      dish.save()
+      .then((dish) =>
+      {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(dish);
+      }, (err) => next(err));
+
+    }
+
+    else
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404; //not found
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+})
+.put((req, res, next) =>
+{
+  res.statusCode = 403;
+  res.end(`PUT operation not supported on /dishes/${req.params.dishId}/comments`);
+})
+.delete((req, res, next) =>
+{
+  //Dangerous operation, as it removes all dishes from the database
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    if (dish != null)
+    {
+      //loop backwards to remove all comments (cannot loop forwards or the
+      //indexes change as we delete)
+      for (var i = (dish.comments.length -1); i >= 0; i--)
+      {
+        //.id() is a mongoose function to fetch a subdocument by id
+        //then we can call remove() on the returned document
+        dish.comments.id(dish.comments[i]._id).remove();
+      }
+
+      //if save is successful, return the updated dish
+      dish.save()
+      .then((dish) =>
+      {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(dish);
+      }, (err) => next(err));
+    }
+
+    else
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404; //not found
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+});
+
+dishRouter.route(`/:dishId/comments/:commentId`)
+.get((req, res, next) =>
+{
+  //extract the dishId through the params property of the request
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    //need to check both for the dish and the comment existing
+    if (dish != null && dish.comments.id(req.params.commentId) != null)
+    {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json(dish.comments.id(req.params.commentId));
+    }
+
+    else if (dish == null)
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+    else
+    {
+      err = new Error(`Comment ${req.params.commentId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+})
+.post((req, res, next) =>
+{
+  //operation not supported
+  res.statusCode = 403;
+  res.end(`POST operation not supported on /dishes/${req.params.dishId}/comments/${req.params.commentId}`);
+})
+.put((req, res, next) =>
+{
+  //extract the dishId through the params property of the request
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    //need to check both for the dish and the comment existing
+    if (dish != null && dish.comments.id(req.params.commentId) != null)
+    {
+      //only allow users to change the rating and the comment of a
+      //comment document, not the author or other fields
+      //This seems to be the only easy way to update a subdocument directly
+      //in mongoose. There is no explicit way of doing so otherwise
+      //(unlike how we were doing it to update the dish itself)
+      if (req.body.rating)
+      {
+        dish.comments.id(req.params.commentId).rating = req.body.rating;
+      }
+
+      if (req.body.comment)
+      {
+        dish.comments.id(req.params.commentId).comment = req.body.comment;
+      }
+
+      //if save is successful, return the updated dish
+      dish.save()
+      .then((dish) =>
+      {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(dish);
+      }, (err) => next(err));
+    }
+
+    else if (dish == null)
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+    else
+    {
+      err = new Error(`Comment ${req.params.commentId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+})
+.delete((req, res, next) =>
+{
+  Dishes.findById(req.params.dishId)
+  .then((dish) =>
+  {
+    if (dish != null && dish.comments.id(req.params.commentId) != null)
+    {
+      dish.comments.id(req.params.commentId).remove();
+
+      //if save is successful, return the updated dish
+      dish.save()
+      .then((dish) =>
+      {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(dish);
+      }, (err) => next(err));
+    }
+
+    else if (dish == null)
+    {
+      err = new Error(`Dish ${req.params.dishId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+    else
+    {
+      err = new Error(`Comment ${req.params.commentId} not found`);
+      err.status = 404;
+      return next(err); //handled by app.js file at the bottom
+    }
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
+});
+
 module.exports = dishRouter;
