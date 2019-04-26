@@ -58,11 +58,11 @@ promoRouter.route(`/`)
   .catch((err) => next(err));
 });
 
-promoRouter.route(`/:promotionId`)
+promoRouter.route(`/:promoId`)
 .get((req, res, next) =>
 {
-  //extract the promotionId through the params property of the request
-  Promotions.findById(req.params.promotionId)
+  //extract the promoId through the params property of the request
+  Promotions.findById(req.params.promoId)
   .then((promotion) =>
   {
     res.statusCode = 200;
@@ -75,11 +75,11 @@ promoRouter.route(`/:promotionId`)
 {
   //operation not supported
   res.statusCode = 403;
-  res.end(`POST operation not supported on /promotions/${req.params.promotionId}`);
+  res.end(`POST operation not supported on /promotions/${req.params.promoId}`);
 })
 .put((req, res, next) =>
 {
-  Promotions.findByIdAndUpdate(req.params.promotionId,
+  Promotions.findByIdAndUpdate(req.params.promoId,
   {
     $set: req.body
   },
@@ -96,7 +96,7 @@ promoRouter.route(`/:promotionId`)
 })
 .delete((req, res, next) =>
 {
-  Promotions.findByIdAndRemove(req.params.promotionId)
+  Promotions.findByIdAndRemove(req.params.promoId)
   .then((resp) =>
   {
     res.statusCode = 200;
