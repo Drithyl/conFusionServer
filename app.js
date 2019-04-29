@@ -56,10 +56,6 @@ app.use(session({
   store: new FileStore()
 }));
 
-//These endpoints must be before the rest for authentication
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
 //authorization middleware
 function auth(req, res, next)
 {
@@ -67,28 +63,80 @@ function auth(req, res, next)
   console.log(`Signed Cookies included:\n\n`, req.signedCookies);
   console.log(`Session data included:\n\n`, req.session);
 
-  if (req.session.user == null) //check in session when using express sessions
+  //If the incoming request has no user field in the signed cookies
+  //(as declared further below when setting the cookie),
+  //it will mean that the user has not been authorized yet, so we will
+  //expect him to sign in
+  if (/*req.signedCookies.user == null*/req.session.user == null) //check in session whenever using express sessions
   {
-    let err = new Error(`You are not authenticated!`);
-    err.status = 401;
+    //grabs authorization header sent by client
+    let authHeader = req.headers.authorization;
 
-    //skip all other middlewares below and send error since client is not authenticated
-    return next(err);
-  }
-
-  else
-  {
-    //this field is set in the users.js route when logged in
-    if (req.session.user === "authenticated")
+    //username and password were not included
+    if (authHeader == null)
     {
-      //User logged in, proceed
+      let err = new Error(`You are not authenticated!`);
+
+      //Including this header in the response will prompt the user to authorize himself
+      res.setHeader(`WWW-Authenticate`, `Basic`);
+      err.status = 401; //Unauthorized access code
+
+      //skip all other middlewares below and send error since client is not authenticated
+      return next(err);
+    }
+
+    //header contais "Basic username:password", so we split by a space
+    //and keep only the username:password bit, which is encoded in base64,
+    //so we convert it into a buffer with that encoding and then back to string
+    //so that it is readable. Next we split by ":" to get an array containing
+    //username and password
+    let auth = new Buffer.from(authHeader.split(` `)[1], `base64`).toString().split(`:`);
+    let username = auth[0];
+    let password = auth[1];
+
+    if (username === "admin" && password === "password")
+    {
+      //This cookie name we set here will be accessible in the req object though
+      //req.signedCookies.user. This way once the user is authenticated once,
+      //we can read the cookie and not require authentication each time
+      //here it sets the key user to the value admin, req.signedCookies.user === "admin"
+      //res.cookie(`user`, `admin`, { signed: true });
+
+      req.session.user = `admin`;
+
+      //allow user to pass down to the next middleware to service the request
       next();
     }
 
     else
     {
       let err = new Error(`You are not authenticated!`);
-      err.status = 403; //Forbidden code
+
+      res.setHeader(`WWW-Authenticate`, `Basic`);
+      err.status = 401; //Unauthorized access code
+
+      //skip all other middlewares below and send error since client is not authenticated
+      return next(err);
+    }
+  }
+
+  //signed cookie exists in the request
+  else
+  {
+    if (/*req.signedCookies.user === `admin`*/req.session.user === `admin`) //check in session when using express sessions
+    {
+      //allow access
+      next();
+    }
+
+    else
+    {
+      //not admin
+      let err = new Error(`You are not authenticated!`);
+
+      err.status = 401; //Unauthorized access code
+
+      //skip all other middlewares below and send error since client is not authenticated
       return next(err);
     }
   }
@@ -100,6 +148,8 @@ app.use(auth);
 //authentication should come before this
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leaderRouter);
