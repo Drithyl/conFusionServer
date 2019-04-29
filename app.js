@@ -8,12 +8,6 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const session = require(`express-session`);
-
-//required to keep the express session stored in a database
-//or other persistent storage. Creates a /sessions directory
-//with a .json file for the session stored
-const FileStore = require(`session-file-store`)(session);
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -45,29 +39,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //Pass a string to use as a secret key for signed cookies
-//app.use(cookieParser(`12345-67890-09876-54321`));
-
-//create a session with the express-sessions middleware
-app.use(session({
-  name: `session-id`,
-  secret: `12345-67890-09876-54321`,
-  saveUnitialized: false,
-  resave: false,
-  store: new FileStore()
-}));
+app.use(cookieParser(`12345-67890-09876-54321`));
 
 //authorization middleware
 function auth(req, res, next)
 {
-  console.log(`List of headers included in the request:\n\n`, req.headers);
-  console.log(`Signed Cookies included:\n\n`, req.signedCookies);
-  console.log(`Session data included:\n\n`, req.session);
+  console.log(`List of headers included in the request: \n\n`, req.headers);
+  console.log(`Signed Cookies included: \n\n`, req.signedCookies);
 
   //If the incoming request has no user field in the signed cookies
   //(as declared further below when setting the cookie),
   //it will mean that the user has not been authorized yet, so we will
   //expect him to sign in
-  if (/*req.signedCookies.user == null*/req.session.user == null) //check in session whenever using express sessions
+  if (req.signedCookies.user == null)
   {
     //grabs authorization header sent by client
     let authHeader = req.headers.authorization;
@@ -100,9 +84,7 @@ function auth(req, res, next)
       //req.signedCookies.user. This way once the user is authenticated once,
       //we can read the cookie and not require authentication each time
       //here it sets the key user to the value admin, req.signedCookies.user === "admin"
-      //res.cookie(`user`, `admin`, { signed: true });
-
-      req.session.user = `admin`;
+      res.cookie(`user`, `admin`, { signed: true })
 
       //allow user to pass down to the next middleware to service the request
       next();
@@ -123,7 +105,7 @@ function auth(req, res, next)
   //signed cookie exists in the request
   else
   {
-    if (/*req.signedCookies.user === `admin`*/req.session.user === `admin`) //check in session when using express sessions
+    if (req.signedCookies.user === `admin`)
     {
       //allow access
       next();
