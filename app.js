@@ -14,6 +14,8 @@ const session = require(`express-session`);
 //or other persistent storage. Creates a /sessions directory
 //with a .json file for the session stored
 const FileStore = require(`session-file-store`)(session);
+const passport = require("passport");
+const authenticate = require("./authenticate.js");
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -56,6 +58,10 @@ app.use(session({
   store: new FileStore()
 }));
 
+//this middleware will handle the authentication and the session if existing
+app.use(passport.initialize());
+app.use(passport.session());
+
 //These endpoints must be before the rest for authentication
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -67,30 +73,20 @@ function auth(req, res, next)
   console.log(`Signed Cookies included:\n\n`, req.signedCookies);
   console.log(`Session data included:\n\n`, req.session);
 
-  if (req.session.user == null) //check in session when using express sessions
+  //req.user is loaded in by the passport middleware
+  if (req.user == null)
   {
     let err = new Error(`You are not authenticated!`);
-    err.status = 401;
+    err.status = 403;
 
     //skip all other middlewares below and send error since client is not authenticated
     return next(err);
   }
 
+  //if req.user is present then passport has done authentication and so we can continue
   else
   {
-    //this field is set in the users.js route when logged in
-    if (req.session.user === "authenticated")
-    {
-      //User logged in, proceed
-      next();
-    }
-
-    else
-    {
-      let err = new Error(`You are not authenticated!`);
-      err.status = 403; //Forbidden code
-      return next(err);
-    }
+    next();
   }
 }
 
