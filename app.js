@@ -16,6 +16,7 @@ const session = require(`express-session`);
 const FileStore = require(`session-file-store`)(session);
 const passport = require("passport");
 const authenticate = require("./authenticate.js");
+const config = require("./config.js");
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -27,7 +28,7 @@ const mongoose = require("mongoose");
 
 const Dishes = require("./models/dishes.js");
 
-const url = "mongodb://localhost:27017/conFusion";
+const url = config.mongoUrl;
 const connect = mongoose.connect(url);
 
 connect.then((db) =>
@@ -46,54 +47,15 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-//Pass a string to use as a secret key for signed cookies
-//app.use(cookieParser(`12345-67890-09876-54321`));
-
-//create a session with the express-sessions middleware
-app.use(session({
-  name: `session-id`,
-  secret: `12345-67890-09876-54321`,
-  saveUnitialized: false,
-  resave: false,
-  store: new FileStore()
-}));
-
 //this middleware will handle the authentication and the session if existing
 app.use(passport.initialize());
-app.use(passport.session());
 
 //These endpoints must be before the rest for authentication
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-//authorization middleware
-function auth(req, res, next)
-{
-  console.log(`List of headers included in the request:\n\n`, req.headers);
-  console.log(`Signed Cookies included:\n\n`, req.signedCookies);
-  console.log(`Session data included:\n\n`, req.session);
-
-  //req.user is loaded in by the passport middleware
-  if (req.user == null)
-  {
-    let err = new Error(`You are not authenticated!`);
-    err.status = 403;
-
-    //skip all other middlewares below and send error since client is not authenticated
-    return next(err);
-  }
-
-  //if req.user is present then passport has done authentication and so we can continue
-  else
-  {
-    next();
-  }
-}
-
-app.use(auth);
-
 //enables us to serve static data from our public resources
-//authentication should come before this
+//We will only require authentication for PUT, POST and DELETE operations
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/dishes', dishRouter);
