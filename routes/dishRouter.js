@@ -73,11 +73,11 @@ dishRouter.route(`/`)
 });
 
 dishRouter.route(`/:dishId`)
-.populate("comments.author")
 .get((req, res, next) =>
 {
   //extract the dishId through the params property of the request
   Dishes.findById(req.params.dishId)
+  .populate("comments.author")
   .then((dish) =>
   {
     res.statusCode = 200;
@@ -154,6 +154,13 @@ dishRouter.route(`/:dishId/comments`)
   {
     if (dish != null)
     {
+      //we obtain user information because passport is doing authentication
+      //above in authenticate.verifyUser, which loads the user info into the
+      //request, in req.user. When the comment comes in from the client it will
+      //only contain the comment field and the rating field (since we don't)
+      //want to let the client explicity add the author field
+      req.body.author = req.user._id;
+
       //push the comments that need to be posted
       dish.comments.push(req.body);
 
@@ -161,9 +168,18 @@ dishRouter.route(`/:dishId/comments`)
       dish.save()
       .then((dish) =>
       {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(dish);
+        //need to populate the author information that we filled server-side
+        //above into the result that we send back to the client, so that the
+        //comments will show with their authors too
+        Dishes.findById(dish._id)
+        .populate("comments.author")
+        .then((dish) =>
+        {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(dish);
+        });
+
       }, (err) => next(err));
 
     }
@@ -288,9 +304,15 @@ dishRouter.route(`/:dishId/comments/:commentId`)
       dish.save()
       .then((dish) =>
       {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(dish);
+        Dishes.findById(dish._id)
+        .populate("comments.author")
+        .then((dish) =>
+        {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(dish);
+        });
+
       }, (err) => next(err));
     }
 
@@ -326,9 +348,14 @@ dishRouter.route(`/:dishId/comments/:commentId`)
       dish.save()
       .then((dish) =>
       {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(dish);
+        Dishes.findById(dish._id)
+        .populate("comments.author")
+        .then((dish) =>
+        {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(dish);
+        });
       }, (err) => next(err));
     }
 
