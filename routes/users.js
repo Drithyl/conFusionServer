@@ -8,8 +8,19 @@ var router = express.Router();
 router.use(bodyParser.json());
 
 /* GET users listing. */
-router.get('/', (req, res, next) => {
-  res.send('respond with a resource');
+router.route("/")
+//Only admins can retrieve the list of existing users
+.get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
+{
+  User.find({})
+  .then((users) =>
+  {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(users);
+
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
 //endpoint to sign up new users into the system

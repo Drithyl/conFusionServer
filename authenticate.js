@@ -76,3 +76,18 @@ exports.jwtPassport = passport.use(new JwtStrategy(opts, (jwt_payLoad, done) =>
 //the opts.jwtFromRequest above. Anytime we need to verify the user in the request
 //we cam call this function. If it is successful, we can proceed.
 exports.verifyUser = passport.authenticate("jwt", {session: false});
+
+exports.verifyAdmin = function(req, res, next)
+{
+  if (req.user.admin === true)
+  {
+    next();
+  }
+
+  else
+  {
+    let err = new Error(`You are not authorized to perform this operation!`);
+    err.status = 403;
+    return next(err);
+  }
+};

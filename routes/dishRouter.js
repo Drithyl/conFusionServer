@@ -38,8 +38,10 @@ dishRouter.route(`/`)
 })
 //before running the (req, res, next) callback we can run the verifyUser
 //function to authenticate the user's web token. If it fails, Passport will
-//itself respond with an error to the user
-.post(authenticate.verifyUser, (req, res, next) =>
+//itself respond with an error to the user. We can also run the verifyAdmin
+//function right after to check for admin privileges too, since only admins
+//can post, put or delete dishes/promos/leaders
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   //pass the data we receive in the request body as the data to create a new dish
   Dishes.create(req.body)
@@ -52,14 +54,14 @@ dishRouter.route(`/`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.put(authenticate.verifyUser, (req, res, next) =>
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   //operation not supported, put only makes sense to specific dishes, not on the
   // /dishes endpoint
   res.statusCode = 403;
   res.end(`PUT operation not supported on /dishes`);
 })
-.delete(authenticate.verifyUser, (req, res, next) =>
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   //Dangerous operation, as it removes all dishes from the database
   Dishes.remove({})
@@ -86,13 +88,13 @@ dishRouter.route(`/:dishId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post(authenticate.verifyUser, (req, res, next) =>
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   //operation not supported
   res.statusCode = 403;
   res.end(`POST operation not supported on /dishes/${req.params.dishId}`);
 })
-.put(authenticate.verifyUser, (req, res, next) =>
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   Dishes.findByIdAndUpdate(req.params.dishId,
   {
@@ -109,7 +111,7 @@ dishRouter.route(`/:dishId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.delete(authenticate.verifyUser, (req, res, next) =>
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   Dishes.findByIdAndRemove(req.params.dishId)
   .then((resp) =>
@@ -199,7 +201,8 @@ dishRouter.route(`/:dishId/comments`)
   res.statusCode = 403;
   res.end(`PUT operation not supported on /dishes/${req.params.dishId}/comments`);
 })
-.delete(authenticate.verifyUser, (req, res, next) =>
+//only admins can delete all comments in one stroke
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   //Dangerous operation, as it removes all dishes from the database
   Dishes.findById(req.params.dishId)
@@ -285,6 +288,15 @@ dishRouter.route(`/:dishId/comments/:commentId`)
     //need to check both for the dish and the comment existing
     if (dish != null && dish.comments.id(req.params.commentId) != null)
     {
+      //make sure that the user updating the comment is the same as the one
+      //that posted the comment in the first place
+      if (req.user._id.equals(dish.comments.id(req.params.commentId).author) === false)
+      {
+        let err = new Error(`You are not authorized to update this comment!`);
+        err.status = 403;
+        return next(err);
+      }
+
       //only allow users to change the rating and the comment of a
       //comment document, not the author or other fields
       //This seems to be the only easy way to update a subdocument directly
@@ -342,6 +354,15 @@ dishRouter.route(`/:dishId/comments/:commentId`)
   {
     if (dish != null && dish.comments.id(req.params.commentId) != null)
     {
+      //make sure that the user deleting the comment is the same as the one
+      //that posted the comment in the first place
+      if (req.user._id.equals(dish.comments.id(req.params.commentId).author) === false)
+      {
+        let err = new Error(`You are not authorized to delete this comment!`);
+        err.status = 403;
+        return next(err);
+      }
+
       dish.comments.id(req.params.commentId).remove();
 
       //if save is successful, return the updated dish
