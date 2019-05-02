@@ -2,6 +2,7 @@ var express = require('express');
 const bodyParser = require("body-parser");
 const User = require("../models/user");
 const passport = require("passport");
+const authenticate = require("../authenticate");
 
 var router = express.Router();
 router.use(bodyParser.json());
@@ -36,21 +37,16 @@ router.post("/signup", (req, res, next) =>
   });
 });
 
-//if there is any error in the passport.authenticate() function,
-//the final callback below (req, res, next) does not get executed.
-//passport handles those errors for us thanks to the authenticate.js
-//file we created, in which we specified the auth strategy
-//thus we do not need to handle those cases here;
-//only consider that login was successful
-//when it is successful, the passport.authenticate("local") will add the
-//user property to the request message (req.user), see in app.js
-//when a client request comes with the session in place, passport
-//handles it as well by including it to the req object
-router.post(`/login`, passport.authenticate("local"), (req, res, next) =>
+//if using JWT, we will create a token here for the user to include in all
+//future requests once they are logged in. The passport authenticate will
+//load the user object onto the req object, containing the user information
+//from our User model. Must add the created token onto the body of our response object
+router.post(`/login`, passport.authenticate("local"), (req, res) =>
 {
+  let token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;
   res.setHeader(`Content-Type`, `application/json`);
-  res.json({sucess: true, status: `You are successfully logged in!`});
+  res.json({sucess: true, token: token, status: `You are successfully logged in!`});
 });
 
 //no need to use a post because to log out the server already has the information

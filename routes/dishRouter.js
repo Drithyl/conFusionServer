@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const authenticate = require("../authenticate.js");
 
 const Dishes = require("../models/dishes.js");
 
@@ -35,7 +36,10 @@ dishRouter.route(`/`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+//before running the (req, res, next) callback we can run the verifyUser
+//function to authenticate the user's web token. If it fails, Passport will
+//itself respond with an error to the user
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //pass the data we receive in the request body as the data to create a new dish
   Dishes.create(req.body)
@@ -48,14 +52,14 @@ dishRouter.route(`/`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   //operation not supported, put only makes sense to specific dishes, not on the
   // /dishes endpoint
   res.statusCode = 403;
   res.end(`PUT operation not supported on /dishes`);
 })
-.delete((req, res, next) =>
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   //Dangerous operation, as it removes all dishes from the database
   Dishes.remove({})
@@ -82,13 +86,13 @@ dishRouter.route(`/:dishId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //operation not supported
   res.statusCode = 403;
   res.end(`POST operation not supported on /dishes/${req.params.dishId}`);
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   Dishes.findByIdAndUpdate(req.params.dishId,
   {
@@ -105,7 +109,7 @@ dishRouter.route(`/:dishId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.delete((req, res, next) =>
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   Dishes.findByIdAndRemove(req.params.dishId)
   .then((resp) =>
@@ -142,7 +146,7 @@ dishRouter.route(`/:dishId/comments`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //pass the data we receive in the request body as the data to create a new dish
   Dishes.findById(req.params.dishId)
@@ -174,12 +178,12 @@ dishRouter.route(`/:dishId/comments`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   res.statusCode = 403;
   res.end(`PUT operation not supported on /dishes/${req.params.dishId}/comments`);
 })
-.delete((req, res, next) =>
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   //Dangerous operation, as it removes all dishes from the database
   Dishes.findById(req.params.dishId)
@@ -250,13 +254,13 @@ dishRouter.route(`/:dishId/comments/:commentId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //operation not supported
   res.statusCode = 403;
   res.end(`POST operation not supported on /dishes/${req.params.dishId}/comments/${req.params.commentId}`);
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   //extract the dishId through the params property of the request
   Dishes.findById(req.params.dishId)
@@ -307,7 +311,9 @@ dishRouter.route(`/:dishId/comments/:commentId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.delete((req, res, next) =>
+//should only be allowed for the user who posted the comment to delete it,
+//but for now we are sticking to a basic model
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   Dishes.findById(req.params.dishId)
   .then((dish) =>
