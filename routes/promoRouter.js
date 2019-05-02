@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-
+const authenticate = require("../authenticate.js");
 const Promotions = require("../models/promotions.js");
 
 const promoRouter = express.Router();
@@ -25,7 +25,10 @@ promoRouter.route(`/`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+//before running the (req, res, next) callback we can run the verifyUser
+//function to authenticate the user's web token. If it fails, Passport will
+//itself respond with an error to the user
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //pass the data we receive in the request body as the data to create a new promotion
   Promotions.create(req.body)
@@ -38,14 +41,14 @@ promoRouter.route(`/`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   //operation not supported, put only makes sense to specific promos, not on the
   // /promotions endpoint
   res.statusCode = 403;
   res.end(`PUT operation not supported on /promotions`);
 })
-.delete((req, res, next) =>
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   //Dangerous operation, as it removes all promos from the database
   Promotions.remove({})
@@ -71,13 +74,13 @@ promoRouter.route(`/:promoId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.post((req, res, next) =>
+.post(authenticate.verifyUser, (req, res, next) =>
 {
   //operation not supported
   res.statusCode = 403;
   res.end(`POST operation not supported on /promotions/${req.params.promoId}`);
 })
-.put((req, res, next) =>
+.put(authenticate.verifyUser, (req, res, next) =>
 {
   Promotions.findByIdAndUpdate(req.params.promoId,
   {
@@ -94,7 +97,7 @@ promoRouter.route(`/:promoId`)
   }, (err) => next(err))
   .catch((err) => next(err));
 })
-.delete((req, res, next) =>
+.delete(authenticate.verifyUser, (req, res, next) =>
 {
   Promotions.findByIdAndRemove(req.params.promoId)
   .then((resp) =>
