@@ -19,6 +19,9 @@ dishRouter.route(`/`)
 .get((req, res, next) =>
 {
   Dishes.find({})
+  //will fetch the references to the User documents in the comment
+  //this is a very expensive operation so it should be used judiciously
+  .populate("comments.author")
   .then((dishes) =>
   {
     res.statusCode = 200;
@@ -66,6 +69,7 @@ dishRouter.route(`/`)
 });
 
 dishRouter.route(`/:dishId`)
+.populate("comments.author")
 .get((req, res, next) =>
 {
   //extract the dishId through the params property of the request
@@ -118,6 +122,7 @@ dishRouter.route(`/:dishId/comments`)
 .get((req, res, next) =>
 {
   Dishes.findById(req.params.dishId)
+  .populate("comments.author")
   .then((dish) =>
   {
     if (dish != null)
@@ -217,6 +222,7 @@ dishRouter.route(`/:dishId/comments/:commentId`)
 {
   //extract the dishId through the params property of the request
   Dishes.findById(req.params.dishId)
+  .populate("comments.author")
   .then((dish) =>
   {
     //need to check both for the dish and the comment existing

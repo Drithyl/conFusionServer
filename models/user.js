@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const passportLocalMongoose = require("passport-local-mongoose");
 
-//username and password fields for the schema are 
+//username and password fields for the schema are
 //automatically added by passportLocalMongoose
 const User = new Schema({
 
