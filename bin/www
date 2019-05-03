@@ -7,6 +7,8 @@
 var app = require('../app');
 var debug = require('debug')('confusionserver:server');
 var http = require('http');
+const https = require("https");
+const fs = require("fs");
 
 /**
  * Get port from environment and store in Express.
@@ -15,8 +17,16 @@ var http = require('http');
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
+//secure port for HTTPS. In a standard server acting as a web server,
+//the HTTP protocol runs at port number 80, and the HTTPS protocol runs
+//at port 443. However since this is a development application, we'll instead
+//declare the secure port to run at our normal HTTP port +443 (so 3443),
+//to follow the same conventions
+app.set("secPort", port+443)
+
 /**
- * Create HTTP server.
+ * Create HTTP server. We will keep the HTTP server to forward requests there to
+ * the HTTPS server, as we will only service requests there.
  */
 
 var server = http.createServer(app);
@@ -28,6 +38,23 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+//set the options for our HTTPS server to use our (self-signed) OpenSSL key and certificate
+const httpsOptions = {
+  key: fs.readFileSync(`${__dirname}/private.key`),
+  cert: fs.readFileSync(`${__dirname}/certificate.pem`)
+};
+
+const secureServer = https.createServer(httpsOptions, app);
+
+secureServer.listen(app.get("secPort"), () =>
+{
+  console.log(`Secure Server listening on port ${app.get("secPort")}`);
+});
+
+//handlers defined below
+secureServer.on("error", onError);
+secureServer.on("listening", onListening);
 
 /**
  * Normalize a port into a number, string, or false.

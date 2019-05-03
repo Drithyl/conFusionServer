@@ -39,6 +39,26 @@ connect.then((db) =>
 
 var app = express();
 
+//"all" requests coming in will be redirected to the secure server (* is a wildcard)
+app.all("*", (req, res, next) =>
+{
+  //requests that already go through the secure server will have the .secure flag
+  if (req.secure === true)
+  {
+    return next();
+  }
+
+  console.log("Request received at HTTP, redirecting to HTTPS...");
+
+  //redirect method lets us redirect a request to a different URL, using the
+  //hostname flag already present in the req object (since we're redirecting to
+  //the same host, just different port). req.url contains the actual path on
+  //the server that the request was being sent to. 307 is the code that indicates
+  //that the resources that the client required was moved to a different location
+  //(the secure server)
+  res.redirect(307, `https://${req.hostname}:${app.get("secPort")}${req.url}`);
+});
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');

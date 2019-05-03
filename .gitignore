@@ -1,3 +1,8 @@
 node_modules
 sessions
 .vs
+
+//Ignore certificates and keys as we don't want those exposed
+*.csr
+*.pem
+*.key
