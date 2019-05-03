@@ -18,11 +18,12 @@ const passport = require("passport");
 const authenticate = require("./authenticate.js");
 const config = require("./config.js");
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var dishRouter = require('./routes/dishRouter.js');
-var promoRouter = require('./routes/promoRouter.js');
-var leaderRouter = require('./routes/leaderRouter.js');
+const indexRouter = require('./routes/index');
+const usersRouter = require('./routes/users');
+const dishRouter = require('./routes/dishRouter.js');
+const promoRouter = require('./routes/promoRouter.js');
+const leaderRouter = require('./routes/leaderRouter.js');
+const uploadRouter = require('./routes/uploadRouter.js');
 
 const mongoose = require("mongoose");
 
@@ -78,9 +79,11 @@ app.use('/users', usersRouter);
 //We will only require authentication for PUT, POST and DELETE operations
 app.use(express.static(path.join(__dirname, 'public')));
 
+//set REST endpoints
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leaderRouter);
+app.use("/imageUpload", uploadRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
