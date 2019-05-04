@@ -3,14 +3,16 @@ const bodyParser = require("body-parser");
 const User = require("../models/user");
 const passport = require("passport");
 const authenticate = require("../authenticate");
+const cors = require("./cors.js");
 
 var router = express.Router();
 router.use(bodyParser.json());
 
 /* GET users listing. */
 router.route("/")
+.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
 //Only admins can retrieve the list of existing users
-.get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
+.get(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   User.find({})
   .then((users) =>
@@ -24,7 +26,7 @@ router.route("/")
 });
 
 //endpoint to sign up new users into the system
-router.post("/signup", (req, res, next) =>
+router.post("/signup", cors.corsWithOptions, (req, res, next) =>
 {
   //method provided by passport-local-mongoose
   User.register(new User({ username: req.body.username }), req.body.password, (err, user) =>
@@ -75,7 +77,7 @@ router.post("/signup", (req, res, next) =>
 //future requests once they are logged in. The passport authenticate will
 //load the user object onto the req object, containing the user information
 //from our User model. Must add the created token onto the body of our response object
-router.post(`/login`, passport.authenticate("local"), (req, res) =>
+router.post(`/login`, cors.corsWithOptions, passport.authenticate("local"), (req, res) =>
 {
   let token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;

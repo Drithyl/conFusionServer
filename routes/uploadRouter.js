@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const authenticate = require("../authenticate.js");
 const multer = require("multer");
+const cors = require("./cors.js");
 
 //configure multer (the Node module that enables us to handle multiple file uploads)
 //define the storage options
@@ -46,7 +47,8 @@ const uploadRouter = express.Router();
 uploadRouter.use(bodyParser.json());
 
 uploadRouter.route(`/`)
-.get(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
+.options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
+.get(cors.cors, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   res.statusCode = 403;
   res.end(`GET operation not supported on /imageUpload`);
@@ -57,7 +59,7 @@ uploadRouter.route(`/`)
 //as part of body contents. This middleware will also handle the errors with
 //the upload inside it, so within the .post block itself we can assume
 //it all went correctly
-.post(authenticate.verifyUser, authenticate.verifyAdmin, upload.single("imageFile"),
+.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, upload.single("imageFile"),
 (req, res) =>
 {
   res.statusCode = 200;
@@ -71,12 +73,12 @@ uploadRouter.route(`/`)
   //"destination", "filename", "path" and "size".
   res.json(req.file);
 })
-.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
+.put(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   res.statusCode = 403;
   res.end(`PUT operation not supported on /imageUpload`);
 })
-.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
+.delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) =>
 {
   res.statusCode = 403;
   res.end(`DELETE operation not supported on /imageUpload`);
