@@ -6,11 +6,11 @@ const cors = require("./cors.js");
 
 const Favorites = require("../models/favorite.js");
 
-const favoritesRouter = express.Router();
+const favoriteRouter = express.Router();
 
-favoritesRouter.use(bodyParser.json());
+favoriteRouter.use(bodyParser.json());
 
-favoritesRouter.route(`/`)
+favoriteRouter.route(`/`)
 .options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
 .get(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) =>
 {
@@ -98,7 +98,7 @@ favoritesRouter.route(`/`)
   .catch((err) => next(err));
 });
 
-favoritesRouter.route(`/:dishId`)
+favoriteRouter.route(`/:dishId`)
 .options(cors.corsWithOptions, (req, res) => { res.sendStatus(200); })
 .get(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) =>
 {
@@ -182,4 +182,4 @@ favoritesRouter.route(`/:dishId`)
   .catch((err) => next(err));
 });
 
-module.exports = favoritesRouter;
+module.exports = favoriteRouter;
