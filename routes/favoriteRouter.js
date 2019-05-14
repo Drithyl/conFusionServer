@@ -19,7 +19,7 @@ favoriteRouter.route(`/`)
   .populate("user")
   //populate the dishes array stored in the favoriteSchema by using
   //the dish _id property of each item
-  .populate("dishes._id")
+  .populate("dishes")
   .then((favorites) =>
   {
     res.statusCode = 200;
@@ -62,7 +62,7 @@ favoriteRouter.route(`/`)
       //favorites.dishes, it will not be kept
       let uniqueArray = req.body.filter((dish) =>
       {
-        return favorites.dishes.find((existingDish) => existingDish._id.equals(dish._id)) == null;
+        return favorites.dishes.find((existingDish) => existingDish.equals(dish._id)) == null;
       });
 
       //update the existing favorites by concatenating the existing dishes
@@ -113,7 +113,7 @@ favoriteRouter.route(`/:dishId`)
     //favorites don't exist, so create them with the dish received
     if (favorites == null)
     {
-      Favorites.create({user: req.user._id, dishes: [{_id: req.params.dishId}]})
+      Favorites.create({user: req.user._id, dishes: [req.params.dishId]})
       .then((createdFavorites) =>
       {
         res.statusCode = 200;
@@ -127,7 +127,7 @@ favoriteRouter.route(`/:dishId`)
     else
     {
       //dish already exists in favorites, don't add it again
-      if (favorites.dishes.find((dish) => dish._id.equals(req.params.dishId) === true))
+      if (favorites.dishes.indexOf(req.params.dishId) !== -1)
       {
         err = new Error(`Dish already exists in your favorites!`);
         err.status = 400; //client error
@@ -135,7 +135,7 @@ favoriteRouter.route(`/:dishId`)
       }
 
       //update the existing favorites by pushing the id provided by the user
-      favorites.dishes.push({_id: req.params.dishId});
+      favorites.dishes.push(req.params.dishId);
 
       favorites.save()
       .then((updatedFavorites) =>
@@ -163,7 +163,7 @@ favoriteRouter.route(`/:dishId`)
     //loop must be done backwards or otherwise deleted indexes change the loop order
     for (var i = favorites.dishes.length-1; i >= 0; i--)
     {
-      if (favorites.dishes[i]._id.equals(req.params.dishId) === true)
+      if (favorites.dishes[i].equals(req.params.dishId) === true)
       {
         favorites.dishes.splice(i, 1);
       }

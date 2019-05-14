@@ -2,20 +2,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-//create favorited dishes as their own schema to be able to add them as an array
-//of ObjectId references to the favoriteSchema model
-const favoriteDishSchema = new Schema(
-{
-  _id:
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Dish"
-  }
-},
-{
-  timestamps: true
-});
-
 const favoriteSchema = new Schema(
 {
   user:
@@ -24,7 +10,10 @@ const favoriteSchema = new Schema(
     ref: "User"
   },
 
-  dishes: [ favoriteDishSchema ]
+  dishes: [ {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Dish"
+  } ]
 },
 {
   //Schema options
